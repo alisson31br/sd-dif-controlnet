@@ -18,6 +18,7 @@ from scripts.processor import (
     preprocessor_filters,
     HWC3,
 )
+from scripts.controlnet_ui.openpose_editor import OpenposeEditor
 from modules import shared
 from modules.ui_components import FormRow
 
@@ -155,6 +156,7 @@ class ControlNetUiGroup(object):
         self.control_mode = None
         self.resize_mode = None
         self.loopback = None
+        self.openpose_editor = None
 
     def render(self, tabname: str, elem_id_tabname: str) -> None:
         """The pure HTML structure of a single ControlNetUnit. Calling this
@@ -170,45 +172,35 @@ class ControlNetUiGroup(object):
         """
         with gr.Tabs():
             with gr.Tab(label="Single Image") as self.upload_tab:
-                with gr.Row().style(equal_height=True):
-                    self.input_image = gr.Image(
-                        source="upload",
-                        brush_radius=20,
-                        mirror_webcam=False,
-                        type="numpy",
-                        tool="sketch",
-                        elem_id=f"{elem_id_tabname}_{tabname}_input_image",
-                    )
-                    with gr.Group(visible=False) as self.generated_image_group:
+                with gr.Row(elem_classes=['cnet-image-row']).style(equal_height=True):
+                    with gr.Group(elem_classes=['cnet-input-image-group']):
+                        self.input_image = gr.Image(
+                            source="upload",
+                            brush_radius=20,
+                            mirror_webcam=False,
+                            type="numpy",
+                            tool="sketch",
+                            elem_id=f"{elem_id_tabname}_{tabname}_input_image",
+                            elem_classes=['cnet-image'],
+                        )
+                    with gr.Group(visible=False, elem_classes=['cnet-generated-image-group']) as self.generated_image_group:
                         self.generated_image = gr.Image(
                             label="Preprocessor Preview",
                             elem_id=f"{elem_id_tabname}_{tabname}_generated_image",
+                            elem_classes=['cnet-image'],
                         ).style(
                             height=242
                         )  # Gradio's magic number. Only 242 works.
-                        self.download_pose_link = gr.HTML(value="", visible=False)
-                        preview_close_button_style = """ 
-                            position: absolute;
-                            right: var(--size-2);
-                            bottom: var(--size-2);
-                            font-size: x-small;
-                            font-weight: bold;
-                            padding: 2px;
-                            cursor: pointer;
 
-                            box-shadow: var(--shadow-drop);
-                            border: 1px solid var(--button-secondary-border-color);
-                            border-radius: var(--radius-sm);
-                            background: var(--background-fill-primary);
-                            height: var(--size-5);
-                            color: var(--block-label-text-color);
-                            """
-                        preview_check_elem_id = f"{elem_id_tabname}_{tabname}_controlnet_preprocessor_preview_checkbox"
-                        preview_close_button_js = f"document.querySelector('#{preview_check_elem_id} input[type=\\'checkbox\\']').click();"
-                        gr.HTML(
-                            value=f"""<a style="{preview_close_button_style}" title="Close Preview" onclick="{preview_close_button_js}">Close</a>""",
-                            visible=True,
-                        )
+                        with gr.Group(elem_classes=['cnet-generated-image-control-group']):
+                            self.openpose_editor = OpenposeEditor(self.generated_image)
+                            self.openpose_editor.render()
+                            preview_check_elem_id = f"{elem_id_tabname}_{tabname}_controlnet_preprocessor_preview_checkbox"
+                            preview_close_button_js = f"document.querySelector('#{preview_check_elem_id} input[type=\\'checkbox\\']').click();"
+                            gr.HTML(
+                                value=f"""<a title="Close Preview" onclick="{preview_close_button_js}">Close</a>""",
+                                visible=True,
+                            )
 
             with gr.Tab(label="Batch") as self.batch_tab:
                 self.batch_image_dir = gr.Textbox(
