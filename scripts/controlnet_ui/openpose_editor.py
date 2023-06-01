@@ -30,12 +30,11 @@ class OpenposeEditor(object):
     # URL the openpose editor is mounted on.
     editor_url = "/openpose_editor_index"
 
-    def __init__(self, generated_image: gr.Image) -> None:
-        self.generated_image = generated_image
-
+    def __init__(self) -> None:
         self.render_button = None
         self.download_link = None
         self.modal = None
+        self.render()
 
     def render(self):
         # The hidden button to trigger a re-render of generated image.
@@ -53,7 +52,8 @@ class OpenposeEditor(object):
         self.download_link = gr.HTML(
             value="", visible=False, elem_classes=["cnet-download-pose"]
         )
-
+    
+    def register_callbacks(self, generated_image: gr.Image):
         def render_pose(pose_url: str) -> Dict:
             json_string = parse_data_url(pose_url)
             poses, height, weight = decode_json_as_poses(
@@ -72,7 +72,7 @@ class OpenposeEditor(object):
             )
 
         self.render_button.click(
-            fn=render_pose, inputs=[self.pose_input], outputs=[self.generated_image]
+            fn=render_pose, inputs=[self.pose_input], outputs=[generated_image]
         )
 
     def outputs(self) -> List[Any]:
